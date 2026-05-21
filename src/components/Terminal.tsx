@@ -45,8 +45,18 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -379,39 +389,39 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ 
             opacity: 1, 
             scale: isMinimized ? 0.8 : 1, 
             y: 0,
-            height: isFullscreen ? '94vh' : '650px',
-            width: isFullscreen ? '96vw' : '850px'
+            height: isFullscreen ? '94vh' : (isMobile ? '82vh' : '650px'),
+            width: isFullscreen ? '98vw' : (isMobile ? '94vw' : '850px')
           }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="flex flex-col rounded-lg border border-white/20 bg-[#060606] shadow-2xl shadow-black overflow-hidden"
-          style={{ maxHeight: '90vh' }}
+          style={{ maxHeight: '92vh' }}
         >
           {/* Terminal Window Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-white/10 select-none">
+          <div className="flex items-center justify-between px-3 sm:px-4 py-3 bg-neutral-900 border-b border-white/10 select-none">
             {/* Left side: Terminal Title and Status */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-xs font-mono text-neutral-400">
-                <TerminalIcon className="w-3.5 h-3.5 text-neutral-400 animate-pulse" />
-                <span>idrees@core-sh: ~/workspace (ssh)</span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono text-neutral-400 min-w-0">
+                <TerminalIcon className="w-3.5 h-3.5 text-neutral-400 animate-pulse shrink-0" />
+                <span className="truncate">idrees@core-sh: ~/workspace (ssh)</span>
               </div>
-              <div className="h-4 w-px bg-white/10" />
-              <div className="flex items-center gap-2 font-mono text-[10px] text-neutral-500">
+              <div className="h-4 w-px bg-white/10 shrink-0" />
+              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[9px] sm:text-[10px] text-neutral-500 shrink-0">
                 <Shield className="w-3 h-3 text-white/40" />
                 <span className="hidden sm:inline">AES-256 ENCRYPTED</span>
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" />
               </div>
             </div>
 
             {/* Right side window control buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* MINIMIZE button: Restores if maximized, else minimizes */}
               <button 
                 onClick={() => {
@@ -461,16 +471,21 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
           {/* Terminal Console Output Scrollbox */}
           <div 
             onClick={() => inputRef.current?.focus()}
-            className="flex-1 p-5 overflow-y-auto font-mono text-sm leading-relaxed text-neutral-100 selection:bg-white selection:text-black cursor-text"
+            className="flex-1 p-3 sm:p-5 overflow-y-auto font-mono text-xs sm:text-sm leading-relaxed text-neutral-100 selection:bg-white selection:text-black cursor-text"
           >
             <div className="space-y-2">
               {lines.map((line, i) => {
-                let colorClass = 'text-neutral-300';
-                if (line.type === 'input') colorClass = `text-white font-semibold pl-2 border-l-2 border-white/60 bg-white/[0.03] py-1 px-2 rounded-r ${i > 0 ? 'mt-5' : ''} mb-2`;
-                else if (line.type === 'error') colorClass = 'text-red-400 font-semibold';
-                else if (line.type === 'success') colorClass = 'text-neutral-100 border-l border-white/20 pl-2';
-                else if (line.type === 'system') colorClass = 'text-neutral-400 text-xs';
-                else if (line.type === 'header') colorClass = 'text-white font-bold tracking-tight border-b border-white/10 pb-0.5';
+                let colorClass = 'text-neutral-300 text-xs sm:text-sm';
+                if (line.type === 'input') colorClass = `text-white font-semibold text-xs sm:text-sm pl-2 border-l-2 border-white/60 bg-white/[0.03] py-1 px-2 rounded-r ${i > 0 ? 'mt-5' : ''} mb-2`;
+                else if (line.type === 'error') colorClass = 'text-red-400 font-semibold text-xs sm:text-sm';
+                else if (line.type === 'success') colorClass = 'text-neutral-100 border-l border-white/20 pl-2 text-xs sm:text-sm';
+                else if (line.type === 'system') colorClass = 'text-neutral-400 text-[10px] sm:text-xs';
+                else if (line.type === 'header') {
+                  const isAscii = line.text.includes('█');
+                  colorClass = isAscii 
+                    ? 'text-white font-bold tracking-tighter text-[7.5px] min-[400px]:text-[9px] sm:text-xs md:text-sm overflow-x-auto whitespace-pre leading-normal border-b border-white/10 pb-1 font-mono'
+                    : 'text-white font-bold tracking-tight text-xs sm:text-sm border-b border-white/10 pb-0.5';
+                }
 
                 return (
                   <pre 
@@ -503,23 +518,25 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
           </div>
 
           {/* Terminal Input Row Container */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#0c0c0c] border-t border-white/10">
-            <span className="text-white font-mono font-semibold select-none">guest@idrees-sh:~$</span>
+          <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 bg-[#0c0c0c] border-t border-white/10">
+            <span className="text-white font-mono font-semibold select-none shrink-0 text-xs sm:text-sm">
+              {isMobile ? ' guest:$' : 'guest@idrees-sh:~$'}
+            </span>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type command (e.g. 'skills' or 'ping') and press Enter..."
-              className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm placeholder-neutral-600 focus:ring-0 focus:outline-none"
+              placeholder={isMobile ? "Type command..." : "Type command (e.g. 'skills' or 'ping') and press Enter..."}
+              className="flex-1 bg-transparent border-none outline-none text-white font-mono text-xs sm:text-sm placeholder-neutral-600 focus:ring-0 focus:outline-none min-w-0"
               autoFocus
             />
             <button
               onClick={() => handleCommand(input)}
-              className="p-1 px-3 rounded bg-white hover:bg-neutral-200 text-black font-semibold font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+              className="p-1 px-2 sm:px-3 rounded bg-white hover:bg-neutral-200 text-black font-semibold font-mono text-[10px] sm:text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">EXEC</span>
             </button>
           </div>

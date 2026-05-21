@@ -134,15 +134,15 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Top Left: Visitor IP resolver */}
-          <div className="flex items-center gap-3 font-mono text-[11px] tracking-wider text-neutral-400">
-            <span className="relative flex h-2 w-2">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 font-mono text-[11px] tracking-wider text-neutral-400 text-center md:text-left">
+            <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span>
+            <span className="break-all md:break-normal">
               VISITOR_IP: <span className="text-white font-semibold glow-text">{visitor.ip}</span>
               {visitor.city && (
-                <span className="text-neutral-500 ml-1">
+                <span className="text-neutral-500 ml-1 break-all min-[400px]:break-normal">
                   // {visitor.city.toUpperCase()}, {visitor.country?.toUpperCase()} [{visitor.org || 'NAT Gateway'}]
                 </span>
               )}
@@ -150,10 +150,10 @@ export default function App() {
           </div>
 
           {/* Top Right: Live Clock */}
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-widest text-neutral-400 uppercase">
-            <Clock className="w-3.5 h-3.5 text-neutral-400" />
+          <div className="flex items-center justify-center gap-2 font-mono text-[11px] tracking-widest text-neutral-400 uppercase shrink-0 text-center">
+            <Clock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
             <span>LIVE_CLOCK:</span>
-            <span className="text-white font-bold tracking-tight">
+            <span className="text-white font-bold tracking-tight shrink-0">
               {liveTime.toLocaleDateString().replace(/\//g, '.')} {liveTime.toLocaleTimeString()}
             </span>
           </div>
@@ -199,9 +199,9 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="relative"
+              className="relative w-full"
             >
-              <h1 className="font-mono font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white tracking-tight leading-[1.05] min-w-max">
+              <h1 className="font-mono font-bold text-3xl min-[360px]:text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white tracking-tight leading-[1.05] max-w-full break-words">
                 Idrees Mujadidi<span className="text-white/40 font-light animate-ready animate-duration-1000"></span>
               </h1>
             </motion.div>

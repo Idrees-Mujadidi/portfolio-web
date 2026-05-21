@@ -1,0 +1,6 @@
+{
+  "name": "Idrees Mujadidi Portfolio",
+  "description": "Network & IP Engineer portfolio with live date-time, visitor IP fetching, and an interactive command-line terminal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -21,6 +21,7 @@ import {
   Hash
 } from 'lucide-react';
 import { VisitorInfo, TerminalLine } from '../types';
+import { TypewriterText } from './TypewriterText';
 import { 
   PERSONAL_INFO, 
   SKILL_CATEGORIES, 
@@ -31,6 +32,111 @@ import {
   ASCII_BANNER 
 } from '../data';
 
+interface ParsedLine {
+  type: 'command' | 'kv' | 'bullet' | 'plain';
+  cmd?: string;
+  desc?: string;
+  key?: string;
+  val?: string;
+  prefix?: string;
+  sentence?: string;
+  raw: string;
+}
+
+function parseLineText(text: string): ParsedLine {
+  if (!text || !text.trim()) {
+    return { type: 'plain', raw: text };
+  }
+
+  // 1. Command help entries, e.g., "  about          - View Idrees..."
+  const hyphenMatch = text.match(/^(\s*)([a-zA-Z\?0-9_-]+)\s+-\s+(.+)$/);
+  if (hyphenMatch) {
+    return {
+      type: 'command',
+      cmd: hyphenMatch[2],
+      desc: hyphenMatch[3],
+      raw: text
+    };
+  }
+
+  // 2. Key-Value parameters, e.g., "Title:    Network Systems Engineer" or "  Skills Matrix: BGP..."
+  // Must match any characters preceding a colon: optional bullet bullet symbols, brackets, words, spaces
+  const kvMatch = text.match(/^(\s*)([a-zA-Z0-9_\s-\[\]✔▸★\*]+):\s+(.+)$/);
+  if (kvMatch) {
+    return {
+      type: 'kv',
+      key: kvMatch[2].trim(),
+      val: kvMatch[3],
+      raw: text
+    };
+  }
+
+  // 3. Checked Bullet Pattern, e.g., "  [✔] CCIE Enterprise Infrastructure (Written)"
+  const checkedMatch = text.match(/^(\s*)(\[✔\]|\[x\]|\[\s\])\s+(.+)$/);
+  if (checkedMatch) {
+    return {
+      type: 'bullet',
+      prefix: checkedMatch[2],
+      sentence: checkedMatch[3],
+      raw: text
+    };
+  }
+
+  // 4. Numbered List Pattern, e.g., "1. Lead Network Systems Engineer @ Juniper Systems"
+  const numberedMatch = text.match(/^(\s*)([0-9]+\.)\s+(.+)$/);
+  if (numberedMatch) {
+    return {
+      type: 'bullet',
+      prefix: numberedMatch[2],
+      sentence: numberedMatch[3],
+      raw: text
+    };
+  }
+
+  // 5. Asterisk/Bullet Pattern, e.g., "   * Orchestrated carrier-scale OSPF..." or "   ▸ Project Name"
+  const bulletMatch = text.match(/^(\s*)([\*\-\+▸•])\s+(.+)$/);
+  if (bulletMatch) {
+    return {
+      type: 'bullet',
+      prefix: bulletMatch[2],
+      sentence: bulletMatch[3],
+      raw: text
+    };
+  }
+
+  return { type: 'plain', raw: text };
+}
+
+const AVAILABLE_COMMANDS = [
+  'about',
+  'skills',
+  'experience',
+  'certifications',
+  'projects',
+  'ping',
+  'traceroute',
+  'subnet',
+  'cv',
+  'contact',
+  'sysinfo',
+  'clear',
+  'exit',
+  'help'
+];
+
+function TerminalLineAutoCompleter({ isActive, onComplete }: { isActive: boolean; onComplete: () => void }) {
+  useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 5);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, onComplete]);
+
+  return null;
+}
+
 interface TerminalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,7 +146,9 @@ interface TerminalProps {
 
 export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }: TerminalProps) {
   const [input, setInput] = useState('');
+  const [typedQuery, setTypedQuery] = useState('');
   const [lines, setLines] = useState<TerminalLine[]>([]);
+  const [typingLineIndex, setTypingLineIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -85,6 +193,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
       { text: `Type 'help' list all available network management CLI commands.`, type: 'output', timestamp },
       { text: `--------------------------------------------------------`, type: 'system', timestamp },
     ]);
+    setTypingLineIndex(0);
   };
 
   const addLine = (text: string, type: TerminalLine['type']) => {
@@ -101,18 +210,22 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
     
     // Add spacer line before the new command if there are previous lines
     setLines(prev => {
-      if (prev.length > 0) {
+      const prevLength = prev.length;
+      if (prevLength > 0) {
+        setTypingLineIndex(prevLength);
         return [
           ...prev,
           { text: ' ', type: 'system', timestamp },
           { text: userPromptText, type: 'input', timestamp }
         ];
       }
-      return [...prev, { text: userPromptText, type: 'input', timestamp }];
+      setTypingLineIndex(0);
+      return [{ text: userPromptText, type: 'input', timestamp }];
     });
     setHistory(prev => [trimmed, ...prev].slice(0, 50));
     setHistoryIndex(-1);
     setInput('');
+    setTypedQuery('');
 
     const parts = trimmed.split(' ');
     const command = parts[0].toLowerCase();
@@ -147,7 +260,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
         break;
 
       case 'about':
-        addLine(`--- PROFILE: ${PERSONAL_INFO.name} ---`, 'header');
+        addLine(`--- about: ${PERSONAL_INFO.name} ---`, 'header');
         addLine(`Title:    ${PERSONAL_INFO.title}`, 'output');
         addLine(`Location: ${PERSONAL_INFO.location}`, 'output');
         addLine('', 'output');
@@ -197,16 +310,66 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
         });
         break;
 
-      case 'ping':
-        addLine('Initiating diagnostic ICMP ping echo sequence to idreesmujadidi.net [104.244.42.1]...', 'system');
-        await simulatePing();
+      case 'ping': {
+        const target = args[0] || 'idreesmujadidi.net';
+        const targetLower = target.toLowerCase();
+        const targetLabel = targetLower === 'internet' ? '8.8.8.8 (Google Public DNS)' : target;
+        let targetIp = '104.244.42.1';
+        if (target === '8.8.8.8' || targetLower === 'internet') {
+          targetIp = '8.8.8.8';
+        } else if (target === '1.1.1.1') {
+          targetIp = '1.1.1.1';
+        } else if (targetLower.includes('google')) {
+          targetIp = '142.250.190.46';
+        } else if (target !== 'idreesmujadidi.net') {
+          let hash = 0;
+          for (let i = 0; i < target.length; i++) {
+            hash = target.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const part1 = Math.abs((hash >> 24) & 255) || 192;
+          const part2 = Math.abs((hash >> 16) & 255) || 168;
+          const part3 = Math.abs((hash >> 8) & 255) || 1;
+          const part4 = Math.abs(hash & 255) || 100;
+          targetIp = `${part1}.${part2}.${part3}.${part4}`;
+        }
+        
+        const clientIp = visitorInfo.ip && !visitorInfo.ip.includes('ACQUIRING') ? visitorInfo.ip : '192.168.1.144';
+        
+        addLine(`Initiating diagnostic ICMP ping echo sequence from your IP [${clientIp}] to ${targetLabel} [${targetIp}]...`, 'system');
+        await simulatePing(targetLabel, targetIp, clientIp);
         break;
+      }
 
-      case 'traceroute':
-        addLine(`Tracing hops route vector from Client Gateway [${visitorInfo.ip || '8.8.8.8'}] to Core Systems Gateway [104.244.42.1]...`, 'system');
+      case 'traceroute': {
+        const target = args[0] || 'idreesmujadidi.net';
+        const targetLower = target.toLowerCase();
+        const targetLabel = targetLower === 'internet' ? '8.8.8.8 (Google Public DNS)' : target;
+        let targetIp = '104.244.42.1';
+        if (target === '8.8.8.8' || targetLower === 'internet') {
+          targetIp = '8.8.8.8';
+        } else if (target === '1.1.1.1') {
+          targetIp = '1.1.1.1';
+        } else if (targetLower.includes('google')) {
+          targetIp = '142.250.190.46';
+        } else if (target !== 'idreesmujadidi.net') {
+          let hash = 0;
+          for (let i = 0; i < target.length; i++) {
+            hash = target.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const part1 = Math.abs((hash >> 24) & 255) || 192;
+          const part2 = Math.abs((hash >> 16) & 255) || 168;
+          const part3 = Math.abs((hash >> 8) & 255) || 1;
+          const part4 = Math.abs(hash & 255) || 100;
+          targetIp = `${part1}.${part2}.${part3}.${part4}`;
+        }
+
+        const clientIp = visitorInfo.ip && !visitorInfo.ip.includes('ACQUIRING') ? visitorInfo.ip : '192.168.1.144';
+
+        addLine(`Tracing hops route vector from your client IP [${clientIp}] to ${targetLabel} [${targetIp}]...`, 'system');
         addLine('max hops = 30, packet size = 52 byte packets', 'system');
-        await simulateTraceroute();
+        await simulateTraceroute(targetLabel, targetIp, clientIp);
         break;
+      }
 
       case 'subnet':
         const cidr = args[0] || '24';
@@ -240,6 +403,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
 
       case 'clear':
         setLines([]);
+        setTypingLineIndex(0);
         break;
 
       default:
@@ -254,7 +418,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
     }
   };
 
-  const simulatePing = async () => {
+  const simulatePing = async (targetLabel: string, targetIp: string, clientIp: string) => {
     const packetTimes = [12.4, 14.1, 11.9, 13.0, 15.6];
     for (let i = 0; i < packetTimes.length; i++) {
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -262,7 +426,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
       setLines(prev => [
         ...prev,
         {
-          text: `64 bytes from 104.244.42.1: icmp_seq=${i + 1} ttl=56 time=${packetTimes[i]} ms`,
+          text: `64 bytes from ${targetIp}: icmp_seq=${i + 1} ttl=56 time=${packetTimes[i]} ms`,
           type: 'output',
           timestamp
         }
@@ -271,20 +435,21 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
     
     await new Promise(resolve => setTimeout(resolve, 200));
     addLine('', 'output');
-    addLine('--- idreesmujadidi.net diagnostic link ping statistics ---', 'header');
+    addLine(`--- ${targetLabel} diagnostic link ping statistics from your client IP [${clientIp}] ---`, 'header');
     addLine('5 packets transmitted, 5 received, 0% packet loss, time 1604ms', 'success');
     addLine('rtt min/avg/max/mdev = 11.912/13.402/15.611/1.242 ms', 'success');
     addLine(' ', 'output');
   };
 
-  const simulateTraceroute = async () => {
+  const simulateTraceroute = async (targetLabel: string, targetIp: string, clientIp: string) => {
+    const defaultRouterCpe = clientIp.includes('.') ? clientIp.split('.').slice(0, 3).join('.') + '.1' : '192.168.1.1';
     const hops = [
-      { ip: '192.168.1.1', desc: 'Home Local LAN Gateway / CPE Router', rtts: [1.1, 0.9, 1.2] },
+      { ip: defaultRouterCpe, desc: 'Local CPE Gateway Router / LAN Access Layer', rtts: [1.1, 0.9, 1.2] },
       { ip: '10.0.96.1', desc: 'Metropolitan Carrier Distribution Aggregator', rtts: [3.4, 4.1, 3.8] },
       { ip: '172.16.20.45', desc: 'Carrier Core BGP Edge Exchange Peer', rtts: [9.2, 11.0, 9.5] },
       { ip: '195.66.224.12', desc: 'Tier-1 International Peering Transit Interchange', rtts: [14.1, 13.8, 14.5] },
       { ip: '108.170.244.1', desc: 'Cloud Enterprise Multi-homed Core IP-Fabric', rtts: [16.2, 15.9, 16.5] },
-      { ip: '104.244.42.1', desc: 'Destination Hosted Server Gateway [idrees-net]', rtts: [17.4, 18.2, 17.1] }
+      { ip: targetIp, desc: `Destination Target Host [${targetLabel}]`, rtts: [17.4, 18.2, 17.1] }
     ];
 
     for (let i = 0; i < hops.length; i++) {
@@ -301,7 +466,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
       ]);
     }
     addLine('', 'output');
-    addLine('Diagnostic path traceroute complete. Routing loops: 0. Latency hops are normal.', 'success');
+    addLine(`Diagnostic path traceroute complete from ${clientIp} to ${targetIp} (${targetLabel}). Routing loops: 0. Latency hops are normal.`, 'success');
     addLine(' ', 'output');
   };
 
@@ -349,6 +514,25 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
     addLine(`  Broadcast Address:    192.168.1.${cidrNum >= 31 ? '0' : totalIps - 1}`, 'output');
   };
 
+  const getMatchingCommands = () => {
+    const query = typedQuery.trim();
+    if (!query) return [];
+    if (query.includes(' ')) return [];
+    const lowercaseQuery = query.toLowerCase();
+    return AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(lowercaseQuery));
+  };
+
+  const matchingCommands = getMatchingCommands();
+  const currentSuggestion = matchingCommands[0] || '';
+
+  const handleSelectSuggestion = (cmd: string) => {
+    setInput(cmd);
+    setTypedQuery(cmd);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleCommand(input);
@@ -358,6 +542,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
         const nextIndex = Math.min(historyIndex + 1, history.length - 1);
         setHistoryIndex(nextIndex);
         setInput(history[nextIndex]);
+        setTypedQuery(history[nextIndex]);
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -365,8 +550,22 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
       setHistoryIndex(nextIndex);
       if (nextIndex < 0) {
         setInput('');
+        setTypedQuery('');
       } else {
         setInput(history[nextIndex]);
+        setTypedQuery(history[nextIndex]);
+      }
+    } else if (e.key === 'Tab') {
+      if (matchingCommands.length > 0) {
+        e.preventDefault();
+        const currentIndex = matchingCommands.indexOf(input.toLowerCase());
+        const nextIndex = (currentIndex + 1) % matchingCommands.length;
+        setInput(matchingCommands[nextIndex]);
+      }
+    } else if (e.key === 'ArrowRight' && inputRef.current?.selectionStart === input.length) {
+      if (currentSuggestion && currentSuggestion !== input.toLowerCase()) {
+        e.preventDefault();
+        setInput(currentSuggestion);
       }
     }
   };
@@ -377,7 +576,7 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
       <button
         id={`cli_badge_${cmd.replace(/\s+/g, '_')}`}
         onClick={() => handleCommand(cmd)}
-        className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded bg-white/[0.04] hover:bg-white/[0.12] text-neutral-300 hover:text-white border border-white/[0.06] hover:border-white/[0.2] transition-all cursor-pointer"
+        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-mono rounded bg-white/[0.04] hover:bg-white/[0.12] text-neutral-300 hover:text-white border border-white/[0.06] hover:border-white/[0.2] transition-all cursor-pointer whitespace-nowrap shrink-0"
       >
         {icon}
         <span>{label}</span>
@@ -396,8 +595,8 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
             opacity: 1, 
             scale: isMinimized ? 0.8 : 1, 
             y: 0,
-            height: isFullscreen ? '94vh' : (isMobile ? '82vh' : '650px'),
-            width: isFullscreen ? '98vw' : (isMobile ? '94vw' : '850px')
+            height: isFullscreen ? '94vh' : (isMobile ? '86vh' : '650px'),
+            width: isFullscreen ? '98vw' : (isMobile ? '95vw' : '850px')
           }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -470,30 +669,139 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
 
           {/* Terminal Console Output Scrollbox */}
           <div 
+            id="terminal-scrollbox"
             onClick={() => inputRef.current?.focus()}
-            className="flex-1 p-3 sm:p-5 overflow-y-auto font-mono text-xs sm:text-sm leading-relaxed text-neutral-100 selection:bg-white selection:text-black cursor-text"
+            className="flex-1 p-3 sm:p-4 md:p-5 overflow-y-auto font-mono selection:bg-white selection:text-black cursor-text"
           >
             <div className="space-y-2">
               {lines.map((line, i) => {
-                let colorClass = 'text-neutral-300 text-xs sm:text-sm';
-                if (line.type === 'input') colorClass = `text-white font-semibold text-xs sm:text-sm pl-2 border-l-2 border-white/60 bg-white/[0.03] py-1 px-2 rounded-r ${i > 0 ? 'mt-5' : ''} mb-2`;
-                else if (line.type === 'error') colorClass = 'text-red-400 font-semibold text-xs sm:text-sm';
-                else if (line.type === 'success') colorClass = 'text-neutral-100 border-l border-white/20 pl-2 text-xs sm:text-sm';
-                else if (line.type === 'system') colorClass = 'text-neutral-400 text-[10px] sm:text-xs';
+                if (i > typingLineIndex) return null;
+                const isCurrentTyping = i === typingLineIndex;
+                const bypass = line.type === 'input' || !isCurrentTyping;
+
+                let colorClass = 'text-neutral-300 text-[11px] min-[400px]:text-xs sm:text-sm leading-relaxed';
+                if (line.type === 'input') colorClass = `text-white font-semibold text-xs sm:text-sm pl-2 border-l-2 border-white/60 bg-white/[0.03] py-1 px-2 rounded-r ${i > 0 ? 'mt-4 sm:mt-5' : ''} mb-1 sm:mb-2 leading-relaxed`;
+                else if (line.type === 'error') colorClass = 'text-red-400 font-semibold text-[11px] min-[400px]:text-xs sm:text-sm leading-relaxed';
+                else if (line.type === 'success') colorClass = 'text-neutral-100 border-l border-white/20 pl-2 text-[11px] min-[400px]:text-xs sm:text-sm leading-relaxed';
+                else if (line.type === 'system') colorClass = 'text-neutral-500 text-[10px] sm:text-xs leading-relaxed';
                 else if (line.type === 'header') {
                   const isAscii = line.text.includes('█');
                   colorClass = isAscii 
-                    ? 'text-white font-bold tracking-tighter text-[7.5px] min-[400px]:text-[9px] sm:text-xs md:text-sm overflow-x-auto whitespace-pre leading-normal border-b border-white/10 pb-1 font-mono'
-                    : 'text-white font-bold tracking-tight text-xs sm:text-sm border-b border-white/10 pb-0.5';
+                    ? 'text-white font-bold tracking-tighter text-[7.5px] min-[400px]:text-[9px] sm:text-xs md:text-sm overflow-x-auto whitespace-pre leading-normal border-b border-white/10 pb-1 font-mono invisible-scrollbar'
+                    : 'text-white font-bold tracking-tight text-xs sm:text-sm border-b border-white/10 pb-1 leading-relaxed';
+                }
+
+                const isAsciiArt = line.type === 'header' && line.text.includes('█');
+                const parsed = parseLineText(line.text);
+
+                if (parsed.type === 'command' && line.type !== 'input') {
+                  return (
+                    <div 
+                      key={i} 
+                      className={`${colorClass} flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-0.5 select-text font-mono`}
+                    >
+                      <div className="text-white font-semibold w-full sm:w-[125px] md:w-[150px] shrink-0 select-text flex items-center justify-between">
+                        <span>{parsed.cmd}</span>
+                        <span className="hidden sm:inline text-white/10 flex-grow border-b border-dashed border-white/15 mx-3 mt-2 select-none"></span>
+                      </div>
+                      <div className="text-neutral-300 select-text flex-grow pl-4 sm:pl-0 leading-relaxed">
+                        <span className="text-white/30 mr-1.5 sm:hidden select-none">↳</span>
+                        <TypewriterText 
+                          text={parsed.desc || ''} 
+                          isAsciiArt={false} 
+                          bypassTyping={bypass} 
+                          onComplete={() => setTypingLineIndex(prev => prev + 1)}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (parsed.type === 'kv' && line.type !== 'input') {
+                  return (
+                    <div 
+                      key={i} 
+                      className={`${colorClass} flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-0.5 select-text font-mono`}
+                    >
+                      <div className="text-neutral-400 font-medium w-full sm:w-[145px] md:w-[165px] shrink-0 select-text flex items-center justify-between">
+                        <span>{parsed.key}</span>
+                        <span className="text-white/10 select-none ml-0.5">:</span>
+                        <span className="hidden sm:inline text-white/5 flex-grow border-b border-dotted border-white/10 mx-2 mt-2 select-none"></span>
+                      </div>
+                      <div className="text-neutral-200 select-text flex-grow pl-4 sm:pl-0 leading-relaxed">
+                        <TypewriterText 
+                          text={parsed.val || ''} 
+                          isAsciiArt={false} 
+                          bypassTyping={bypass} 
+                          onComplete={() => setTypingLineIndex(prev => prev + 1)}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (parsed.type === 'bullet' && line.type !== 'input') {
+                  const isChecked = parsed.prefix?.includes('✔');
+                  const prefixColor = isChecked 
+                    ? 'text-emerald-400 font-bold' 
+                    : (parsed.prefix?.match(/^[0-9]/) ? 'text-white/40 font-semibold' : 'text-emerald-500 font-bold');
+                  
+                  const parts = (parsed.sentence || '').split(/\s+-\s+(.+)/);
+                  const mainCert = parts[0];
+                  const certDetail = parts[1] ? `- ${parts[1]}` : '';
+
+                  return (
+                    <div 
+                      key={i} 
+                      className={`${colorClass} flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-0.5 select-text font-mono`}
+                    >
+                      <div className="flex items-center gap-2 w-full sm:w-[520px] shrink-0 text-neutral-200 font-medium select-text justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`${prefixColor} shrink-0 select-none min-w-[20px] text-center`}>
+                            {parsed.prefix}
+                          </span>
+                          <span className="select-text">{mainCert}</span>
+                        </div>
+                        {certDetail && (
+                          <span className="hidden sm:inline text-white/10 flex-grow border-b border-dashed border-white/15 mx-3 mt-2 select-none"></span>
+                        )}
+                      </div>
+                      {certDetail ? (
+                        <div className="text-neutral-400 select-text flex-grow pl-7 sm:pl-0 leading-relaxed font-mono">
+                          <span className="text-white/30 mr-1.5 sm:hidden select-none">↳</span>
+                          <TypewriterText 
+                            text={certDetail} 
+                            isAsciiArt={false} 
+                            bypassTyping={bypass} 
+                            onComplete={() => setTypingLineIndex(prev => prev + 1)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-grow">
+                          <TerminalLineAutoCompleter 
+                            isActive={isCurrentTyping} 
+                            onComplete={() => setTypingLineIndex(prev => prev + 1)} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
                 }
 
                 return (
-                  <pre 
+                  <div 
                     key={i} 
-                    className={`${colorClass} whitespace-pre-wrap font-mono select-text`}
+                    className={`${colorClass} ${isAsciiArt ? 'whitespace-pre overflow-x-auto invisible-scrollbar' : 'whitespace-pre-wrap'} font-mono select-text`}
                   >
-                    {line.text}
-                  </pre>
+                    <span className="select-text">
+                      <TypewriterText 
+                        text={line.text} 
+                        isAsciiArt={isAsciiArt} 
+                        bypassTyping={bypass} 
+                        onComplete={() => setTypingLineIndex(prev => prev + 1)}
+                      />
+                    </span>
+                  </div>
                 );
               })}
               <div ref={terminalEndRef} />
@@ -501,9 +809,9 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
           </div>
 
           {/* Helper Console Dock - Fast Command Buttons */}
-          <div className="px-4 py-2 bg-neutral-950 border-t border-white/10">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 invisible-scrollbar">
-              <span className="text-[10px] font-mono font-semibold text-neutral-500 uppercase tracking-wider pr-1">Fast CLI:</span>
+          <div className="px-3 sm:px-4 py-2 bg-neutral-950 border-t border-white/10">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 invisible-scrollbar">
+              <span className="text-[9px] sm:text-[10px] font-mono font-semibold text-neutral-500 uppercase tracking-wider pr-1 shrink-0">Fast CLI:</span>
               {renderQuickBadge('help', 'Help/Menu', <HelpCircle className="w-3 h-3" />)}
               {renderQuickBadge('about', 'Profile', <Globe className="w-3 h-3" />)}
               {renderQuickBadge('skills', 'Skills', <Cpu className="w-3 h-3" />)}
@@ -517,21 +825,65 @@ export default function Terminal({ isOpen, onClose, visitorInfo, onDownloadCV }:
             </div>
           </div>
 
+          {/* Autocomplete suggestions bar */}
+          {typedQuery.trim() && matchingCommands.length > 0 && (
+            <div className="px-3 sm:px-4 py-1.5 bg-neutral-950 border-t border-white/10 flex items-center gap-2 overflow-x-auto invisible-scrollbar">
+              <span className="text-[9px] sm:text-[10px] font-mono font-semibold text-neutral-500 uppercase tracking-wider shrink-0 select-none">
+                Suggestions:
+              </span>
+              <div className="flex items-center gap-2">
+                {matchingCommands.map(cmd => (
+                  <button
+                    key={cmd}
+                    onClick={() => handleSelectSuggestion(cmd)}
+                    className={`flex items-center gap-1 px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-mono rounded border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                      cmd === currentSuggestion 
+                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-semibold' 
+                        : 'bg-white/[0.02] text-neutral-400 border-white/[0.04] hover:bg-white/[0.08] hover:text-neutral-200'
+                    }`}
+                  >
+                    <span>{cmd}</span>
+                    {cmd === currentSuggestion && (
+                      <span className="text-[9px] font-bold text-emerald-500/60 bg-emerald-500/10 px-1 rounded select-none">
+                        Tab
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Terminal Input Row Container */}
-          <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 bg-[#0c0c0c] border-t border-white/10">
+          <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-[#0c0c0c] border-t border-white/10">
             <span className="text-white font-mono font-semibold select-none shrink-0 text-xs sm:text-sm">
               {isMobile ? ' guest:$' : 'guest@idrees-sh:~$'}
             </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isMobile ? "Type command..." : "Type command (e.g. 'skills' or 'ping') and press Enter..."}
-              className="flex-1 bg-transparent border-none outline-none text-white font-mono text-xs sm:text-sm placeholder-neutral-600 focus:ring-0 focus:outline-none min-w-0"
-              autoFocus
-            />
+            <div className="relative flex-1 flex items-center min-w-0">
+              {/* Ghost suggestion layer */}
+              {input && currentSuggestion && currentSuggestion !== input.toLowerCase() && (
+                <div 
+                  className="absolute inset-y-0 left-0 flex items-center pointer-events-none font-mono text-base md:text-sm text-neutral-600 select-none"
+                >
+                  {/* Invisible spacer to shift the remainder of the text */}
+                  <span className="opacity-0 whitespace-pre">{input}</span>
+                  <span className="whitespace-pre">{currentSuggestion.substring(input.length)}</span>
+                </div>
+              )}
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => {
+                  setInput(e.target.value);
+                  setTypedQuery(e.target.value);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={isMobile ? "Type command..." : "Type command (e.g. 'skills' or 'ping') and press Enter..."}
+                className="w-full bg-transparent border-none outline-none text-white font-mono text-base md:text-sm placeholder-neutral-600 focus:ring-0 focus:outline-none min-w-0 z-10"
+                autoFocus
+              />
+            </div>
             <button
               onClick={() => handleCommand(input)}
               className="p-1 px-2 sm:px-3 rounded bg-white hover:bg-neutral-200 text-black font-semibold font-mono text-[10px] sm:text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"

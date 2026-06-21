@@ -4,8 +4,8 @@ export const PERSONAL_INFO = {
   name: 'Idrees Mujadidi',
   title: 'Network / IP Engineer',
   email: 'idreesmujaddidy@gmail.com',
-  github: 'https://github.com/idreesmujaddidy',
-  linkedin: 'https://linkedin.com/in/idrees-mujaddidy',
+  github: 'https://github.com/Idrees-Mujadidi',
+  linkedin: 'https://af.linkedin.com/in/mohammad-idrees-mujadidi-1848671a2',
   location: 'Kabul, Afghanistan (Available globally)',
   summary: 'Dedicated and analytical Network/IP Engineer specializing in robust routing architectures, service-provider BGP peering, structural enterprise switching, WAN technologies, IPv4/IPv6 address architecture design, security hardening, and infrastructure automation.',
 };

@@ -38,3 +38,12 @@ body {
 .animate-ready {
   animation: pulse-slow 2s infinite ease-in-out;
 }
+
+/* Hide scrollbars for slick scrolling of helper dock badges */
+.invisible-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.invisible-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

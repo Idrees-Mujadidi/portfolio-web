@@ -131,13 +131,13 @@ export default function App() {
 
       {/* Header telemetry top-bar */}
       <header className="relative w-full border-b border-white/[0.08] backdrop-blur-md bg-black/50 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Top Left: Visitor IP resolver */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 font-mono text-[11px] tracking-wider text-neutral-400 text-center md:text-left">
-            <span className="relative flex h-2 w-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-2.5 font-mono text-[10px] tracking-wider text-neutral-400 text-center md:text-left">
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
             </span>
             <span className="break-all md:break-normal">
               VISITOR_IP: <span className="text-white font-semibold glow-text">{visitor.ip}</span>
@@ -150,8 +150,8 @@ export default function App() {
           </div>
 
           {/* Top Right: Live Clock */}
-          <div className="flex items-center justify-center gap-2 font-mono text-[11px] tracking-widest text-neutral-400 uppercase shrink-0 text-center">
-            <Clock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+          <div className="flex items-center justify-center gap-2 font-mono text-[10px] tracking-widest text-neutral-400 uppercase shrink-0 text-center">
+            <Clock className="w-3 h-3 text-neutral-400 shrink-0" />
             <span>LIVE_CLOCK:</span>
             <span className="text-white font-bold tracking-tight shrink-0">
               {liveTime.toLocaleDateString().replace(/\//g, '.')} {liveTime.toLocaleTimeString()}
@@ -177,20 +177,20 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content Hero container Grid wrapper */}
-      <main className="relative max-w-7xl mx-auto px-6 py-12 md:py-24 z-10 flex flex-col justify-center min-h-[calc(100vh-80px)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <main className="relative max-w-5xl mx-auto px-6 sm:px-8 py-10 md:py-16 z-10 flex flex-col justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-80px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6 items-center">
           
           {/* Hero Content Left Column */}
-          <div className="lg:col-span-7 flex flex-col items-start justify-center pr-0 lg:pr-8">
+          <div className="lg:col-span-7 flex flex-col items-start justify-center pr-0 lg:pr-6">
             
             {/* Status ticker block */}
             <motion.div 
               initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex items-center gap-3 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-full font-mono text-[10px] uppercase tracking-wider text-neutral-400 mb-6"
+              className="flex items-center gap-2.5 px-2.5 py-0.5 bg-white/[0.03] border border-white/10 rounded-full font-mono text-[9px] uppercase tracking-wider text-neutral-400 mb-5"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse animate-duration-1000" />
+              <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse animate-duration-1000" />
               <span>SSH CORE PROTOCOL ACTIVE // PORT: 3000</span>
             </motion.div>
 
@@ -201,7 +201,7 @@ export default function App() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="relative w-full"
             >
-              <h1 className="font-mono font-bold text-3xl min-[360px]:text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white tracking-tight leading-[1.05] max-w-full break-words">
+              <h1 className="font-mono font-bold text-2xl min-[360px]:text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.05] max-w-full break-words">
                 Idrees Mujadidi<span className="text-white/40 font-light animate-ready animate-duration-1000"></span>
               </h1>
             </motion.div>
@@ -211,7 +211,7 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-neutral-400 font-sans text-xl sm:text-2xl font-light tracking-wide mt-3"
+              className="text-neutral-400 font-sans text-lg sm:text-xl font-light tracking-wide mt-2"
             >
               Network / IP Engineer
             </motion.h2>
@@ -221,7 +221,7 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-neutral-400 font-sans text-sm sm:text-base font-normal leading-relaxed tracking-wide max-w-xl mt-6"
+              className="text-neutral-400 font-sans text-xs sm:text-sm font-normal leading-relaxed tracking-wide max-w-lg mt-4"
             >
               Architecting secure peer routes, dynamic switching trunks, and optimizing service-provider infrastructure. Experienced inside live NOC environments managing OSPF convergence, BGP advertisements, and Ansible network infrastructure automation.
             </motion.p>
@@ -231,25 +231,25 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex flex-wrap gap-2.5 mt-8 max-w-xl font-mono text-[11px] text-neutral-300"
+              className="flex flex-wrap gap-2 mt-6 max-w-lg font-mono text-[10px] text-neutral-300"
             >
-              <span className="flex items-center gap-1.5 px-2 py-1 border border-white/[0.06] bg-white/[0.01] rounded">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 border border-white/[0.06] bg-white/[0.01] rounded">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
                 BGP TE
               </span>
-              <span className="flex items-center gap-1.5 px-2 py-1 border border-white/[0.06] bg-white/[0.01] rounded">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 border border-white/[0.06] bg-white/[0.01] rounded">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
                 OSPF LSA
               </span>
-              <span className="flex items-center gap-1.5 px-2 py-1 border border-white/[0.06] bg-white/[0.01] rounded">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 border border-white/[0.06] bg-white/[0.01] rounded">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
                 IPsec Tunnels
               </span>
-              <span className="flex items-center gap-1.5 px-2 py-1 border border-white/[0.06] bg-white/[0.01] rounded">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 border border-white/[0.06] bg-white/[0.01] rounded">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
                 CIDR Subnetting
               </span>
-              <span className="flex items-center gap-1.5 px-2 py-1 border border-white/[0.06] bg-white/[0.01] rounded">
+              <span className="flex items-center gap-1 px-1.5 py-0.5 border border-white/[0.06] bg-white/[0.01] rounded">
                 <span className="w-1 h-1 rounded-full bg-white/40" />
                 Ansible / Python
               </span>
@@ -260,17 +260,17 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="w-full flex justify-start mt-12 mb-4"
+              className="w-full flex justify-start mt-8 mb-3"
             >
-              <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 
                 {/* Button 1: Download CV */}
                 <button
                   id="btn_download_cv"
                   onClick={handleDownloadCV}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-transparent text-white font-mono font-bold text-xs uppercase tracking-widest rounded border border-white/20 hover:border-white hover:bg-white/[0.03] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-transparent text-white font-mono font-bold text-[10px] uppercase tracking-widest rounded border border-white/20 hover:border-white hover:bg-white/[0.03] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group"
                 >
-                  <FileText className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                  <FileText className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
                   <span>Download CV</span>
                 </button>
 
@@ -278,9 +278,9 @@ export default function App() {
                 <button
                   id="btn_open_terminal"
                   onClick={() => setIsTerminalOpen(true)}
-                  className="w-full sm:w-auto relative group overflow-hidden px-6 py-3.5 bg-white text-black font-mono font-bold text-xs uppercase tracking-widest rounded border border-white hover:bg-black hover:text-white transition-all duration-300 shadow-xl shadow-white/5 cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto relative group overflow-hidden px-5 py-2.5 bg-white text-black font-mono font-bold text-[10px] uppercase tracking-widest rounded border border-white hover:bg-black hover:text-white transition-all duration-300 shadow-xl shadow-white/5 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <TerminalIcon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                  <TerminalIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110" />
                   <span>Open Terminal</span>
                 </button>
 
@@ -295,7 +295,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="relative w-full max-w-[460px] aspect-square flex items-center justify-center overflow-hidden z-10"
+              className="relative w-full max-w-[380px] aspect-square flex items-center justify-center overflow-hidden z-10"
             >
               <InteractiveGlobe />
             </motion.div>
@@ -312,13 +312,58 @@ export default function App() {
         onDownloadCV={handleDownloadCV}
       />
 
+      {/* Search Engine Optimization (SEO) & Identity Index Mapping Database */}
+      <section aria-label="Search Engine Optimization Map" className="sr-only">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-neutral-300">
+                  Global Search Index Registry (SEO Identity Mapping)
+                </h3>
+              </div>
+              <div className="font-mono text-[9px] text-neutral-500">
+                STATUS: ROOT_VERIFIED_INDEX_PROPAGATED
+              </div>
+            </div>
+            
+            <p className="text-neutral-400 text-xs font-sans leading-relaxed max-w-4xl">
+              This interactive IP Workspace is fully optimized and mapped for rapid search query resolution. 
+              Search algorithms index these records to resolve public inquiries for Mohammad Idrees Mujaddidi 
+              across key geographic servers and professional networks. Verified indexing pointers are mapped below:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-2 font-mono text-[10px]">
+              {[
+                { label: 'Primary Actor', value: 'Mohammad Idrees Mujaddidi' },
+                { label: 'Alias Record 1', value: 'Idrees Mujadidi' },
+                { label: 'Alias Record 2', value: 'Idrees Mujaddidi' },
+                { label: 'Alias Record 3', value: 'Mohammad Idrees' },
+                { label: 'Alias Record 4', value: 'Mohammad Idrees Mujadidi' },
+                { label: 'Geographic Search', value: 'Idrees Mujadidi Kabul' },
+                { label: 'Regional Search', value: 'Idrees Kabul' },
+                { label: 'Organization Search', value: 'Idrees ioglobal' },
+                { label: 'Short Hand Term', value: 'Idrees' },
+                { label: 'Core Profession', value: 'Network & IP Engineer' }
+              ].map((record, idx) => (
+                <div key={idx} className="p-3 bg-white/[0.01] border border-white/[0.04] rounded hover:border-white/[0.12] transition-all duration-200 flex flex-col gap-1">
+                  <span className="text-neutral-600 text-[8px] uppercase tracking-wider">{record.label}</span>
+                  <span className="text-neutral-300 font-semibold">{record.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Subtle footer */}
-      <footer className="relative w-full py-8 border-t border-white/[0.03] z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-mono text-[10px] text-neutral-500 tracking-wider">
+      <footer className="relative w-full py-6 border-t border-white/[0.03] z-10">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-mono text-[9px] text-neutral-500 tracking-wider">
             © {liveTime.getFullYear()} IDREES MUJADIDI. ALL RIGHTS RESERVED.
           </p>
-          <div className="flex items-center gap-4 font-mono text-[10px] text-neutral-400">
+          <div className="flex items-center gap-4 font-mono text-[9px] text-neutral-400">
             <a href={PERSONAL_INFO.github} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               // GITHUB
             </a>
